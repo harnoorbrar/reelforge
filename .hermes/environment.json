@@ -1,0 +1,22 @@
+{
+  "name": "ReelForge",
+  "kind": "flask",
+  "bootstrap": [
+    "uv venv --quiet .venv || true",
+    ".venv/Scripts/activate && uv pip install -r requirements.txt"
+  ],
+  "build": [],
+  "test": [
+    ".venv/Scripts/activate && python smoke_test.py"
+  ],
+  "start": ".venv/Scripts/activate && python run.py",
+  "port": 8000,
+  "readinessPath": "/healthz",
+  "evidence": [
+    "Python 3.11 project with Flask dependency",
+    "Uses uv-managed .venv (no global pip on PATH); venv creation is idempotent",
+    "Entry point is run.py (sets PORT=8000)",
+    "smoke_test.py exercises the full script->voice->image->video pipeline",
+    "Readiness probed at /healthz"
+  ]
+}

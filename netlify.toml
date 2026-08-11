@@ -1,0 +1,6 @@
+[build]
+  publish = "static"
+  command = "echo 'static landing only; wire to a Render/API backend for the app'"
+
+[build.environment]
+  NODE_VERSION = "22"

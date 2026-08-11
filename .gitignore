@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
+static/generated/
+*.mp4
+*.wav
+*.mp3
+*.png
+.DS_Store
+*.log

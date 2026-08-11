@@ -7,6 +7,14 @@ static/generated/
 *.wav
 *.mp3
 *.log
+p.png
+probe.png
+probe2.png
+promo_bg.png
+frames_preview/
+promo_preview/
+verify_out.json
+verify_manual.log
 # Keep intentional marketing assets tracked:
 !static/demo/
 !static/promo_poster.png

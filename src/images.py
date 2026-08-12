@@ -2,13 +2,40 @@
 
 Free path (default): pollinations.ai text-to-image, no key, no cost.
 Upgrade path: set FAL_KEY to route through FAL FLUX for higher fidelity.
+
+PRODUCTION NOTES
+----------------
+Pollinations' free tier rate-limits aggressively (HTTP 429). Two defenses:
+  * A global rate limiter (threading.Semaphore + min-interval sleep) caps how
+    fast we hit the API across ALL concurrent jobs, so a burst of requests
+    can't trigger a 429 storm.
+  * Robust retry with exponential backoff + jitter on 429/5xx.
 """
 import time
+import threading
 import urllib.request
 import urllib.parse
 from pathlib import Path
 
-from .config import FAL_KEY, IMAGE_W, IMAGE_H, POLLINATIONS_TIMEOUT, POLLINATIONS_RETRIES
+from .config import FAL_KEY, IMAGE_W, IMAGE_H, POLLINATIONS_TIMEOUT
+
+# --- Global rate limiting for the free Pollinations tier -------------------
+# At most one request every MIN_INTERVAL seconds, regardless of how many jobs
+# are running. This keeps us safely under the free-tier rate limit.
+_RATE_LOCK = threading.Lock()
+_LAST_CALL = [0.0]
+_MIN_INTERVAL = 4.0  # seconds between pollinations calls (tunable)
+_MAX_ATTEMPTS = 5
+
+
+def _throttle():
+    """Block until at least MIN_INTERVAL has elapsed since the last call."""
+    with _RATE_LOCK:
+        now = time.time()
+        wait = _MIN_INTERVAL - (now - _LAST_CALL[0])
+        if wait > 0:
+            time.sleep(wait)
+        _LAST_CALL[0] = time.time()
 
 
 def generate_image(prompt: str, out_path, width: int = IMAGE_W, height: int = IMAGE_H,
@@ -33,7 +60,9 @@ def _pollinations_image(prompt, out_path, width, height, seed):
         f"&seed={seed if seed is not None else int(time.time()) % 100000}"
     )
     last_err = None
-    for attempt in range(POLLINATIONS_RETRIES + 1):
+    for attempt in range(_MAX_ATTEMPTS):
+        # Throttle globally BEFORE each attempt (covers retries too).
+        _throttle()
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "ReelForge/1.0"})
             with urllib.request.urlopen(req, timeout=POLLINATIONS_TIMEOUT) as r:
@@ -44,14 +73,17 @@ def _pollinations_image(prompt, out_path, width, height, seed):
             return out_path
         except urllib.error.HTTPError as e:
             last_err = e
-            wait = 6 * (attempt + 1)
-            print(f"[images] pollinations HTTP {e.code}; retrying in {wait}s")
+            # Exponential backoff with jitter; 429/5xx need a longer wait.
+            base = 10 * (2 ** attempt)
+            jitter = base * 0.3
+            wait = base + (time.time() % jitter)
+            print(f"[images] pollinations HTTP {e.code}; retry {attempt+1}/{_MAX_ATTEMPTS} in {wait:.0f}s")
             time.sleep(wait)
         except Exception as e:
             last_err = e
             print(f"[images] pollinations attempt {attempt+1} failed: {e}")
-            time.sleep(3)
-    raise RuntimeError(f"pollinations image gen failed: {last_err}")
+            time.sleep(5)
+    raise RuntimeError(f"pollinations image gen failed after {_MAX_ATTEMPTS} attempts: {last_err}")
 
 
 def _fal_image(prompt, out_path, width, height, seed):

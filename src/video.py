@@ -36,20 +36,24 @@ def _ken_burns(clip, duration, zoom_from=1.0, zoom_to=1.14, pan="down"):
 
 
 def _make_caption(text, duration, start):
+    # NOTE: moviepy v2 uses ImageMagick to rasterize TextClip. With
+    # method="caption" the per-glyph rasterizer mangles certain letters
+    # (notably "U" -> two bars). Switching to method="label" renders the
+    # full string as one image, sidestepping the bug while keeping bold +
+    # stroke. Position is anchored manually to keep it centered, lower-third.
     txt = TextClip(
         text=text.upper(),
-        font_size=74,
+        font_size=80,
         font=FONT_BOLD,
         color="white",
         stroke_color="black",
-        stroke_width=6,
-        size=(VIDEO_W - 120, None),
-        method="caption",
+        stroke_width=8,
+        method="label",
         text_align="center",
-        horizontal_align="center",
+        size=(VIDEO_W - 120, None),
     )
     txt = (
-        txt.with_position(("center", 0.72), relative=True)
+        txt.with_position(("center", 0.70), relative=True)
         .with_duration(duration)
         .with_start(start)
     )

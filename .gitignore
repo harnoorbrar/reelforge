@@ -16,6 +16,7 @@ promo_preview/
 verify_out.json
 verify_manual.log
 waitress.log
+test_frame/
 # Keep intentional marketing assets tracked:
 !static/demo/
 !static/promo_poster.png

@@ -24,8 +24,8 @@ from .config import FAL_KEY, IMAGE_W, IMAGE_H, POLLINATIONS_TIMEOUT
 # are running. This keeps us safely under the free-tier rate limit.
 _RATE_LOCK = threading.Lock()
 _LAST_CALL = [0.0]
-_MIN_INTERVAL = 4.0  # seconds between pollinations calls (tunable)
-_MAX_ATTEMPTS = 5
+_MIN_INTERVAL = 8.0  # seconds between pollinations calls (tunable)
+_MAX_ATTEMPTS = 6
 
 
 def _throttle():
@@ -73,8 +73,14 @@ def _pollinations_image(prompt, out_path, width, height, seed):
             return out_path
         except urllib.error.HTTPError as e:
             last_err = e
+            # Honor the server's own Retry-After hint if provided.
+            retry_after = e.headers.get("Retry-After") if hasattr(e, "headers") else None
+            try:
+                ra = int(retry_after) if retry_after else 0
+            except (TypeError, ValueError):
+                ra = 0
             # Exponential backoff with jitter; 429/5xx need a longer wait.
-            base = 10 * (2 ** attempt)
+            base = max(10 * (2 ** attempt), ra)
             jitter = base * 0.3
             wait = base + (time.time() % jitter)
             print(f"[images] pollinations HTTP {e.code}; retry {attempt+1}/{_MAX_ATTEMPTS} in {wait:.0f}s")
@@ -83,7 +89,10 @@ def _pollinations_image(prompt, out_path, width, height, seed):
             last_err = e
             print(f"[images] pollinations attempt {attempt+1} failed: {e}")
             time.sleep(5)
-    raise RuntimeError(f"pollinations image gen failed after {_MAX_ATTEMPTS} attempts: {last_err}")
+    # Friendly, user-facing error instead of a raw internal trace.
+    raise RuntimeError(
+        "image service is rate-limited right now; please try again in a minute"
+    )
 
 
 def _fal_image(prompt, out_path, width, height, seed):

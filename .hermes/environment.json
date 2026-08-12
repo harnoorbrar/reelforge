@@ -2,21 +2,20 @@
   "name": "ReelForge",
   "kind": "flask",
   "bootstrap": [
-    "uv venv --quiet .venv || true",
-    ".venv/Scripts/activate && uv pip install -r requirements.txt"
+    "uv pip install --python C:\\Users\\noori\\reelforge\\.venv\\Scripts\\python.exe -r C:\\Users\\noori\\reelforge\\requirements.txt"
   ],
   "build": [],
   "test": [
-    ".venv/Scripts/activate && python smoke_test.py"
+    "C:\\Users\\noori\\reelforge\\.venv\\Scripts\\python.exe C:\\Users\\noori\\reelforge\\smoke_test.py"
   ],
-  "start": ".venv/Scripts/activate && python run.py",
+  "start": "C:\\Users\\noori\\reelforge\\.venv\\Scripts\\python.exe C:\\Users\\noori\\reelforge\\run.py",
   "port": 8000,
   "readinessPath": "/healthz",
   "evidence": [
-    "Python 3.11 project with Flask dependency",
-    "Uses uv-managed .venv (no global pip on PATH); venv creation is idempotent",
-    "Entry point is run.py (sets PORT=8000)",
-    "smoke_test.py exercises the full script->voice->image->video pipeline",
+    "Python 3.11 Flask project; no global pip, uses uv + project .venv",
+    "Recipe uses explicit .venv/Scripts/python.exe paths (no shell activation, cmd-safe)",
+    "Entry point run.py listens on PORT (default 8000)",
+    "smoke_test.py runs the full script->voice->image->video pipeline and asserts a real .mp4 is produced",
     "Readiness probed at /healthz"
   ]
 }

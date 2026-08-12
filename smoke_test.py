@@ -13,7 +13,7 @@ t0 = time.time()
 job_id = pl.create_job(TOPIC, num_scenes=4, style="cinematic")
 print("job_id:", job_id)
 pl.run_job(job_id, TOPIC, num_scenes=4, style="cinematic")
-job = pl.JOBS[job_id]
+job = pl.get_job(job_id)
 print("status:", job["status"])
 print("progress:", job["progress"])
 if job["status"] == "done":

@@ -1,4 +1,8 @@
-"""ReelForge entry point. Run: python run.py  (after `source .venv/Scripts/activate`)"""
+"""ReelForge entry point. Run: python run.py  (after `source .venv/Scripts/activate`)
+
+This uses Flask's built-in server and is intended for LOCAL development only.
+For production, serve via gunicorn using wsgi:app (see Procfile / render.yaml).
+"""
 import os
 import sys
 from pathlib import Path
@@ -10,6 +14,6 @@ sys.path.insert(0, str(ROOT))
 from src.app import app
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", os.environ.get("PORT", 8000)))
+    port = int(os.environ.get("PORT", 8000))
     print(f"ReelForge running on http://localhost:{port}")
     app.run(host="0.0.0.0", port=port, threaded=True, debug=False)
